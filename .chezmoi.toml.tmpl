@@ -1,0 +1,8 @@
+{{- $gitMode := promptChoiceOnce . "git_mode" "Git mode (personal/company/both)" (list "personal" "company" "both") -}}
+
+[data]
+    git_mode = {{ $gitMode | quote }}
+
+[awsSecretsManager]
+    profile = "default"
+    region  = "ap-northeast-2"

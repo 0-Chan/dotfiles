@@ -1,0 +1,15 @@
+#!/bin/bash
+# extensions hash: {{ include "dot_config/vscode/extensions.txt" | sha256sum }}
+set -euo pipefail
+
+if ! command -v code >/dev/null; then
+  echo "[vscode] 'code' CLI를 찾을 수 없어 건너뜀" >&2
+  echo "        VS Code → Command Palette → 'Shell Command: Install code command in PATH' 실행 후 재시도" >&2
+  exit 0
+fi
+
+EXT_FILE="$HOME/.config/vscode/extensions.txt"
+while IFS= read -r ext; do
+  [ -z "$ext" ] && continue
+  code --install-extension "$ext" --force
+done < "$EXT_FILE"
