@@ -1,0 +1,11 @@
+vitest.explorer
+wayou.vscode-todo-highlight
+vincaslt.highlight-matching-tag
+shardulm94.trailing-spaces
+pkief.material-icon-theme
+github.github-vscode-theme
+eamodio.gitlens
+chunsen.bracket-select
+chakrounanas.turbo-console-log
+bradlc.vscode-tailwindcss
+biomejs.biome

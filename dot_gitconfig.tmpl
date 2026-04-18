@@ -1,0 +1,44 @@
+[init]
+    defaultBranch = main
+
+[pull]
+    rebase = false
+
+[push]
+    autoSetupRemote = true
+
+[core]
+    editor = code --wait
+
+{{- if eq .git_mode "personal" }}
+[include]
+    path = ~/.config/git/personal
+{{- end }}
+
+{{- if eq .git_mode "company" }}
+[include]
+    path = ~/.config/git/company
+{{- end }}
+
+{{- if eq .git_mode "both" }}
+[includeIf "gitdir:~/workspace/personal/"]
+    path = ~/.config/git/personal
+
+[includeIf "gitdir:~/workspace/company/"]
+    path = ~/.config/git/company
+{{- end }}
+
+[credential "https://github.com"]
+    useHttpPath = true
+    helper =
+    helper = !/opt/homebrew/bin/gh auth git-credential
+
+[credential]
+    helper = osxkeychain
+[http]
+    postBuffer = 1048576000
+
+[credential "https://gist.github.com"]
+    helper =
+    helper = !/opt/homebrew/bin/gh auth git-credential
+
