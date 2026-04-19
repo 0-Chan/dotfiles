@@ -1,0 +1,89 @@
+#!/bin/bash
+# gh auth — AWS Secrets Manager에서 GitHub PAT를 가져와 gh CLI 인증
+set -uo pipefail
+
+AWS_PROFILE="default"
+AWS_REGION="ap-northeast-2"
+GIT_MODE={{ .git_mode | quote }}
+
+# ── 사전 조건 확인 ──
+
+if ! command -v gh >/dev/null; then
+  echo "[gh-auth] gh CLI를 찾을 수 없어 건너뜀" >&2
+  exit 0
+fi
+
+if ! command -v aws >/dev/null; then
+  echo "[gh-auth] aws CLI를 찾을 수 없어 건너뜀" >&2
+  exit 0
+fi
+
+if ! aws sts get-caller-identity --profile "$AWS_PROFILE" --region "$AWS_REGION" >/dev/null 2>&1; then
+  echo "[gh-auth] AWS 자격 증명이 구성되지 않았거나 만료됨 — 건너뜀" >&2
+  echo "        'aws configure' 실행 후 'chezmoi apply'를 다시 실행하세요." >&2
+  exit 0
+fi
+
+# ── 헬퍼 함수 ──
+
+gh_authed_count() {
+  gh auth status --hostname github.com 2>&1 | grep -c "Logged in to github.com account" || true
+}
+
+gh_auth_with_secret() {
+  local secret_name="$1"
+  local label="$2"
+
+  echo "[gh-auth] $label: AWS Secrets Manager에서 토큰 가져오는 중..."
+  local token
+  token=$(aws secretsmanager get-secret-value \
+    --secret-id "$secret_name" \
+    --profile "$AWS_PROFILE" \
+    --region "$AWS_REGION" \
+    --query 'SecretString' \
+    --output text 2>&1)
+
+  if [ $? -ne 0 ] || [ -z "$token" ]; then
+    echo "[gh-auth] $label: 시크릿 '$secret_name' 가져오기 실패 — 건너뜀" >&2
+    return 1
+  fi
+
+  printf "%s" "$token" | gh auth login --hostname github.com --with-token
+  echo "[gh-auth] $label: 인증 완료"
+}
+
+# ── 이미 인증 완료 여부 확인 (멱등성) ──
+
+CURRENT_COUNT=$(gh_authed_count)
+
+case "$GIT_MODE" in
+  personal|company) REQUIRED_COUNT=1 ;;
+  both)             REQUIRED_COUNT=2 ;;
+  *)
+    echo "[gh-auth] 알 수 없는 git_mode: $GIT_MODE — 건너뜀" >&2
+    exit 0
+    ;;
+esac
+
+if [ "$CURRENT_COUNT" -ge "$REQUIRED_COUNT" ]; then
+  echo "[gh-auth] 이미 인증 완료 (계정 ${CURRENT_COUNT}개) — 건너뜀"
+  exit 0
+fi
+
+# ── 인증 실행 ──
+
+case "$GIT_MODE" in
+  personal)
+    gh_auth_with_secret "github/personal/token" "personal"
+    ;;
+  company)
+    gh_auth_with_secret "github/company/token" "company"
+    ;;
+  both)
+    gh_auth_with_secret "github/personal/token" "personal"
+    gh_auth_with_secret "github/company/token" "company"
+    ;;
+esac
+
+echo "[gh-auth] 인증 상태:"
+gh auth status

@@ -17,6 +17,7 @@
 자동화 스크립트(`chezmoi apply` 시 실행):
 - `run_onchange_after_10-brew.sh.tmpl` — Brewfile이 바뀌면 `brew bundle` 재실행 + Mac App Store 앱 설치(실패 시 경고만 출력)
 - `run_onchange_after_20-vscode-extensions.sh.tmpl` — extension 리스트가 바뀌면 VS Code 확장 재설치
+- `run_after_30-gh-auth.sh.tmpl` — 매 apply 시 gh CLI 인증 확인. AWS Secrets Manager에서 GitHub PAT를 가져와 `gh auth login` 실행 (이미 인증되어 있으면 건너뜀)
 
 ## 새 머신 부트스트랩
 
@@ -48,6 +49,23 @@ chezmoi init --apply <git-repo-url>
 4. VS Code가 깔리고 `code` CLI가 PATH에 잡혀 있으면 확장 일괄 설치
    - `code` CLI가 없으면 해당 단계만 건너뜀. VS Code에서 `Shell Command: Install 'code' command in PATH` 실행 후
      `chezmoi apply` 한 번 더.
+5. gh CLI 인증 — AWS 자격 증명이 없으면 건너뜀. 아래 단계 참고.
+
+### gh CLI 인증 (AWS Secrets Manager 연동)
+
+`chezmoi init --apply` 직후에는 AWS가 설정되지 않아 gh 인증이 건너뛰어짐.
+이후 아래 순서로 완료:
+
+```bash
+# 5. AWS CLI 설정
+aws configure
+# Access Key, Secret Key, Region(ap-northeast-2), Output format 입력
+
+# 6. chezmoi 재적용 → gh auth 자동 실행
+chezmoi apply
+```
+
+`git_mode`에 따라 personal/company/both 계정이 자동 인증됨.
 
 ## git_mode 분기
 
@@ -67,7 +85,7 @@ chezmoi apply
 
 ## AWS Secrets Manager 네이밍 컨벤션
 
-현재 실제 참조 템플릿은 없으나, 후속 작업에서 토큰을 주입할 때 사용할 네이밍을 고정:
+`run_after_30-gh-auth.sh.tmpl`에서 `aws` CLI로 시크릿을 가져와 gh 인증에 사용:
 
 | secret 이름 | 용도 |
 |---|---|
@@ -75,7 +93,8 @@ chezmoi apply
 | `github/company/token` | 회사 계정 GitHub PAT |
 
 - Profile: `default`, Region: `ap-northeast-2` (repo 루트 `.chezmoi.toml.tmpl`에 명시됨)
-- chezmoi 템플릿에서 참조 예: `{{ (awsSecretsManager "github/personal/token").SecretString }}`
+- 스크립트에서 참조: `aws secretsmanager get-secret-value --secret-id github/personal/token --query SecretString --output text`
+- IAM 권한 필요: `secretsmanager:GetSecretValue`
 
 ## 일상 운영 명령
 
