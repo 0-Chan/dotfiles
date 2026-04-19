@@ -7,4 +7,23 @@ if ! command -v brew >/dev/null; then
   exit 0
 fi
 
+# ── sudo 세션 유지 (cask 설치 시 비밀번호 반복 입력 방지) ──
+echo "[brew] 일부 cask 설치에 관리자 권한이 필요합니다."
+sudo -v
+while true; do sudo -n true; sleep 50; kill -0 "$$" || exit; done 2>/dev/null &
+SUDO_PID=$!
+
+# ── Homebrew bundle (formulae + casks) ──
 brew bundle --file="{{ .chezmoi.sourceDir }}/Brewfile"
+
+# ── Mac App Store apps (실패해도 계속 진행) ──
+echo "[mas] Mac App Store 앱 설치 시작..."
+if command -v mas >/dev/null; then
+  mas install 869223134 || echo "[mas] KakaoTalk 설치 실패 — App Store에서 직접 설치하세요" >&2
+  mas install 937984704 || echo "[mas] Amphetamine 설치 실패 — App Store에서 직접 설치하세요" >&2
+else
+  echo "[mas] mas CLI를 찾을 수 없어 건너뜀" >&2
+fi
+
+# ── 정리 ──
+kill "$SUDO_PID" 2>/dev/null || true

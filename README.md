@@ -12,9 +12,10 @@
 | Ghostty 터미널 | `~/.config/ghostty/config` | `dot_config/ghostty/config` |
 | VS Code 확장 목록 | `~/.config/vscode/extensions.txt` | `dot_config/vscode/extensions.txt` |
 | Homebrew 패키지 | (설치용, 배포 X) | `Brewfile` |
+| Mac App Store 앱 | (스크립트에서 `mas` 직접 실행) | `run_onchange_after_10-brew.sh.tmpl` |
 
 자동화 스크립트(`chezmoi apply` 시 실행):
-- `run_onchange_after_10-brew.sh.tmpl` — Brewfile이 바뀌면 `brew bundle` 재실행
+- `run_onchange_after_10-brew.sh.tmpl` — Brewfile이 바뀌면 `brew bundle` 재실행 + Mac App Store 앱 설치(실패 시 경고만 출력)
 - `run_onchange_after_20-vscode-extensions.sh.tmpl` — extension 리스트가 바뀌면 VS Code 확장 재설치
 
 ## 새 머신 부트스트랩
@@ -42,7 +43,8 @@ chezmoi init --apply <git-repo-url>
 `chezmoi init --apply`가 끝나면 다음이 자동으로 수행됨:
 1. `~/.config/chezmoi/chezmoi.toml` 생성(선택한 `git_mode` 포함)
 2. 관리 대상 dotfile 배포
-3. `brew bundle`로 Brewfile의 모든 패키지/앱 설치
+3. `brew bundle`로 Brewfile의 모든 패키지/앱 설치 (sudo 비밀번호 1회 입력)
+   - Mac App Store 앱(KakaoTalk, Amphetamine)은 별도로 `mas install` 실행 — 실패해도 나머지 설치에 영향 없음
 4. VS Code가 깔리고 `code` CLI가 PATH에 잡혀 있으면 확장 일괄 설치
    - `code` CLI가 없으면 해당 단계만 건너뜀. VS Code에서 `Shell Command: Install 'code' command in PATH` 실행 후
      `chezmoi apply` 한 번 더.
