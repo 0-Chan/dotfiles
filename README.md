@@ -11,6 +11,8 @@
 | Git company 프로필 | `~/.config/git/company` | `dot_config/git/private_company.tmpl` |
 | Ghostty 터미널 | `~/.config/ghostty/config` | `dot_config/ghostty/config` |
 | VS Code 확장 목록 | `~/.config/vscode/extensions.txt` | `dot_config/vscode/extensions.txt` |
+| VS Code keybindings | `~/Library/Application Support/Code/User/keybindings.json` | `private_Library/private_Application Support/private_Code/User/keybindings.json` |
+| Karabiner 룰 조각 | `~/.config/karabiner-rules/*.json` (실제 룰은 `karabiner.json`에 partial merge) | `dot_config/karabiner-rules/` |
 | Homebrew 패키지 | (설치용, 배포 X) | `Brewfile` |
 | Mac App Store 앱 | (스크립트에서 `mas` 직접 실행) | `run_onchange_after_10-brew.sh.tmpl` |
 
@@ -18,6 +20,8 @@
 - `run_onchange_after_10-brew.sh.tmpl` — Brewfile이 바뀌면 `brew bundle` 재실행 + Mac App Store 앱 설치(실패 시 경고만 출력)
 - `run_onchange_after_20-vscode-extensions.sh.tmpl` — extension 리스트가 바뀌면 VS Code 확장 재설치
 - `run_after_30-gh-auth.sh.tmpl` — 매 apply 시 gh CLI 인증 확인. AWS Secrets Manager에서 GitHub PAT를 가져와 `gh auth login` 실행 (이미 인증되어 있으면 건너뜀)
+- `run_onchange_after_40-karabiner-merge.sh.tmpl` — `dot_config/karabiner-rules/` 조각을 `~/.config/karabiner/karabiner.json`에 jq로 partial merge (이미 있으면 skip, 기존 룰 보존)
+- `run_onchange_after_60-macos-defaults.sh.tmpl` — `defaults write`로 macOS 시스템 설정 적용 (현재 `KeyRepeat=2`만)
 
 ## 새 머신 부트스트랩
 

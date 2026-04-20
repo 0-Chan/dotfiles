@@ -1,0 +1,7 @@
+[
+  {
+    "key": "cmd+b",
+    "command": "bracket-select.select",
+    "when": "editorTextFocus"
+  }
+]

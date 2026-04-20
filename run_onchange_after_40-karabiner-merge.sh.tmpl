@@ -1,0 +1,30 @@
+#!/bin/bash
+# fragment hash: {{ include "dot_config/karabiner-rules/shift-o-korean.json" | sha256sum }}
+set -euo pipefail
+
+KB="$HOME/.config/karabiner/karabiner.json"
+FRAG="$HOME/.config/karabiner-rules/shift-o-korean.json"
+DESC='[Korean input] Shift+O -> O (prevents ㅒ, outputs ㅐ)'
+
+if [ ! -f "$KB" ]; then
+  echo "[karabiner] $KB 없음 — Karabiner 최초 실행 후 재시도"
+  exit 0
+fi
+if ! command -v jq >/dev/null; then
+  echo "[karabiner] jq 미설치 — Brewfile apply 이후 재시도"
+  exit 0
+fi
+
+if jq -e --arg d "$DESC" \
+     '.profiles[0].complex_modifications.rules | map(.description) | index($d)' \
+     "$KB" >/dev/null; then
+  echo "[karabiner] '$DESC' 룰 이미 존재 — skip"
+  exit 0
+fi
+
+TMP="$(mktemp)"
+jq --slurpfile new "$FRAG" \
+   '.profiles[0].complex_modifications.rules += $new' \
+   "$KB" > "$TMP"
+mv "$TMP" "$KB"
+echo "[karabiner] '$DESC' 룰 추가 완료"

@@ -1,0 +1,6 @@
+#!/bin/bash
+# defaults hash: KeyRepeat=2
+set -euo pipefail
+
+defaults write -g KeyRepeat -int 2
+echo "[defaults] KeyRepeat=2 적용 (재로그인 후 반영)"
