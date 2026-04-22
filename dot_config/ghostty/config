@@ -32,7 +32,7 @@ background-opacity = 0.94
 
 # 포커스 잃으면 자동으로 숨김(기본 true가 macOS)
 quick-terminal-autohide = true
-quick-terminal-screen = macos-menu-bar
+quick-terminal-screen = main
 
 macos-hidden = always
 
