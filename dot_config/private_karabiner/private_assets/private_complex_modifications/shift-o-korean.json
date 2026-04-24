@@ -1,0 +1,18 @@
+{
+  "title": "[Korean input] Shift+O -> O (prevents ㅒ, outputs ㅐ)",
+  "rules": [
+    {
+      "description": "[Korean input] Shift+O -> O (prevents ㅒ, outputs ㅐ)",
+      "manipulators": [
+        {
+          "conditions": [
+            { "input_sources": [{ "language": "ko" }], "type": "input_source_if" }
+          ],
+          "from": { "key_code": "o", "modifiers": { "mandatory": ["shift"] } },
+          "to": [{ "key_code": "o" }],
+          "type": "basic"
+        }
+      ]
+    }
+  ]
+}
