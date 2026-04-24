@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>PayloadContent</key>
+    <array>
+        <dict>
+            <key>PayloadType</key>
+            <string>com.google.Chrome</string>
+            <key>PayloadIdentifier</key>
+            <string>com.imjongmin.chrome-policies.extensions</string>
+            <key>PayloadUUID</key>
+            <string>39D00995-09C0-45B2-988F-398A0AF9BD33</string>
+            <key>PayloadVersion</key>
+            <integer>1</integer>
+            <key>PayloadDisplayName</key>
+            <string>Chrome Extensions</string>
+            <key>PayloadEnabled</key>
+            <true/>
+            <key>ExtensionSettings</key>
+            <dict>
+                <key>bpoadfkcbjbfhfodiogcnhhhpibjhbnh</key>
+                <dict>
+                    <key>installation_mode</key>
+                    <string>normal_installed</string>
+                    <key>update_url</key>
+                    <string>https://clients2.google.com/service/update2/crx</string>
+                </dict>
+                <key>efaidnbmnnnibpcajpcglclefindmkaj</key>
+                <dict>
+                    <key>installation_mode</key>
+                    <string>normal_installed</string>
+                    <key>update_url</key>
+                    <string>https://clients2.google.com/service/update2/crx</string>
+                </dict>
+                <key>ghbmnnjooekpmoecnnnilnnbdlolhkhi</key>
+                <dict>
+                    <key>installation_mode</key>
+                    <string>normal_installed</string>
+                    <key>update_url</key>
+                    <string>https://clients2.google.com/service/update2/crx</string>
+                </dict>
+                <key>inomeogfingihgjfjlpeplalcfajhgai</key>
+                <dict>
+                    <key>installation_mode</key>
+                    <string>normal_installed</string>
+                    <key>update_url</key>
+                    <string>https://clients2.google.com/service/update2/crx</string>
+                </dict>
+            </dict>
+        </dict>
+    </array>
+    <key>PayloadType</key>
+    <string>Configuration</string>
+    <key>PayloadIdentifier</key>
+    <string>com.imjongmin.chrome-policies</string>
+    <key>PayloadUUID</key>
+    <string>649A5ADA-0F2B-492B-B624-8E4DD92A1F8F</string>
+    <key>PayloadVersion</key>
+    <integer>1</integer>
+    <key>PayloadDisplayName</key>
+    <string>Chrome Browser Policies (imjongmin)</string>
+    <key>PayloadDescription</key>
+    <string>Auto-install Chrome extensions via ExtensionSettings policy. Extensions remain user-removable (normal_installed mode).</string>
+    <key>PayloadScope</key>
+    <string>User</string>
+</dict>
+</plist>

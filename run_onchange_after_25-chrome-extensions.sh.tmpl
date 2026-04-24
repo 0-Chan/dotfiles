@@ -1,0 +1,22 @@
+#!/bin/bash
+# Profile hash: {{ include "chrome-policies.mobileconfig" | sha256sum }}
+set -euo pipefail
+
+PROFILE="{{ .chezmoi.sourceDir }}/chrome-policies.mobileconfig"
+IDENTIFIER="com.imjongmin.chrome-policies"
+
+if [ ! -f "$PROFILE" ]; then
+  echo "[chrome] mobileconfig 파일 없음 — skip" >&2
+  exit 0
+fi
+
+# 이미 동일 identifier로 설치되어 있으면 skip (변경 반영 시 System Settings에서 수동 제거 필요)
+if profiles list 2>/dev/null | grep -q "$IDENTIFIER"; then
+  echo "[chrome] 프로파일 이미 설치됨 ($IDENTIFIER) — skip"
+  echo "[chrome] 내용을 갱신하려면 System Settings > General > VPN & Device Management 에서 해당 프로파일 제거 후 chezmoi apply 재실행"
+  exit 0
+fi
+
+echo "[chrome] Chrome 정책 프로파일을 엽니다 — System Settings > General > VPN & Device Management 에서 '설치'를 클릭해 승인해주세요."
+open "$PROFILE"
+echo "[chrome] 승인 후 Chrome을 재시작하면 확장이 자동 설치됩니다."
