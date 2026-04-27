@@ -90,3 +90,54 @@ source $ZSH/oh-my-zsh.sh
 # alias ohmyzsh="mate ~/.oh-my-zsh"
 
 export PATH="$HOME/.local/bin:$PATH"
+
+# chezmoi apply 실행 결과를 Stickies(우선) 또는 Notes(fallback)에 표시
+show-chezmoi-result() {
+  emulate -L zsh
+  local tmpfile rc log title body html_body saved_clip
+  tmpfile=$(mktemp -t chezmoi-result.XXXXXX)
+  chezmoi apply -v "$@" 2>&1 | tee "$tmpfile"
+  rc=${pipestatus[1]}
+  log=$(sed $'s/\x1b\\[[0-9;]*[a-zA-Z]//g' "$tmpfile")
+  rm -f "$tmpfile"
+
+  title="chezmoi apply $(date '+%Y-%m-%d %H:%M:%S') (exit $rc)"
+  body="${title}
+
+${log}"
+
+  saved_clip=$(pbpaste 2>/dev/null || true)
+  print -r -- "$body" | pbcopy
+
+  open -a Stickies 2>/dev/null
+  sleep 0.5
+
+  if osascript 2>/dev/null <<'APPLESCRIPT'
+tell application "System Events"
+  tell process "Stickies"
+    set frontmost to true
+    keystroke "n" using {command down}
+    delay 0.3
+    keystroke "v" using {command down}
+  end tell
+end tell
+APPLESCRIPT
+  then
+    print -- "[show-chezmoi-result] Stickies 노트 생성"
+  else
+    html_body=${body//&/&amp;}
+    html_body=${html_body//</&lt;}
+    html_body=${html_body//>/&gt;}
+    osascript - "$title" "<pre>${html_body}</pre>" <<'APPLESCRIPT' >/dev/null
+on run argv
+  tell application "Notes"
+    make new note with properties {name:(item 1 of argv), body:(item 2 of argv)}
+  end tell
+end run
+APPLESCRIPT
+    print -- "[show-chezmoi-result] (Stickies 미가용) Notes에 저장"
+  fi
+
+  print -rn -- "$saved_clip" | pbcopy
+  return $rc
+}
