@@ -1,15 +1,34 @@
 #!/bin/bash
 # extensions hash: {{ include "dot_config/vscode/extensions.txt" | sha256sum }}
-set -euo pipefail
+set -uo pipefail
+
+STATUS_FILE="${TMPDIR:-/tmp}/chezmoi-status-20-vscode.log"
+: > "$STATUS_FILE"
+log_status() { printf '%s\t%s\t%s\n' "$1" "$2" "${3:-}" >> "$STATUS_FILE"; }
 
 if ! command -v code >/dev/null; then
   echo "[vscode] 'code' CLI를 찾을 수 없어 건너뜀" >&2
   echo "        VS Code → Command Palette → 'Shell Command: Install code command in PATH' 실행 후 재시도" >&2
+  log_status SKIP "vscode extensions" "code CLI 미설치"
   exit 0
 fi
 
 EXT_FILE="$HOME/.config/vscode/extensions.txt"
+ok_count=0
+fail_count=0
+failed_exts=""
 while IFS= read -r ext; do
   [ -z "$ext" ] && continue
-  code --install-extension "$ext" --force
+  if code --install-extension "$ext" --force >/dev/null 2>&1; then
+    ok_count=$((ok_count + 1))
+  else
+    fail_count=$((fail_count + 1))
+    failed_exts="$failed_exts $ext"
+    log_status FAIL "vscode: $ext"
+  fi
 done < "$EXT_FILE"
+
+log_status OK "vscode extensions" "${ok_count}개 설치 완료"
+if [ "$fail_count" -gt 0 ]; then
+  echo "[vscode] ${fail_count}개 확장 설치 실패:$failed_exts" >&2
+fi

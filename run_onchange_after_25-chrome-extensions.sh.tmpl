@@ -1,12 +1,18 @@
 #!/bin/bash
 # Profile hash: {{ include "chrome-policies.mobileconfig" | sha256sum }}
-set -euo pipefail
+set -uo pipefail
+
+STATUS_FILE="${TMPDIR:-/tmp}/chezmoi-status-25-chrome.log"
+: > "$STATUS_FILE"
+log_status() { printf '%s\t%s\t%s\n' "$1" "$2" "${3:-}" >> "$STATUS_FILE"; }
 
 PROFILE="{{ .chezmoi.sourceDir }}/chrome-policies.mobileconfig"
 IDENTIFIER="com.imjongmin.chrome-policies"
+LABEL="chrome 확장 정책"
 
 if [ ! -f "$PROFILE" ]; then
   echo "[chrome] mobileconfig 파일 없음 — skip" >&2
+  log_status SKIP "$LABEL" "mobileconfig 파일 없음"
   exit 0
 fi
 
@@ -14,9 +20,14 @@ fi
 if profiles list 2>/dev/null | grep -q "$IDENTIFIER"; then
   echo "[chrome] 프로파일 이미 설치됨 ($IDENTIFIER) — skip"
   echo "[chrome] 내용을 갱신하려면 System Settings > General > VPN & Device Management 에서 해당 프로파일 제거 후 chezmoi apply 재실행"
+  log_status SKIP "$LABEL" "프로파일 이미 설치됨"
   exit 0
 fi
 
 echo "[chrome] Chrome 정책 프로파일을 엽니다 — System Settings > General > VPN & Device Management 에서 '설치'를 클릭해 승인해주세요."
-open "$PROFILE"
-echo "[chrome] 승인 후 Chrome을 재시작하면 확장이 자동 설치됩니다."
+if open "$PROFILE"; then
+  log_status OK "$LABEL" "프로파일 열림 — 사용자 승인 필요"
+  echo "[chrome] 승인 후 Chrome을 재시작하면 확장이 자동 설치됩니다."
+else
+  log_status FAIL "$LABEL" "mobileconfig open 실패"
+fi

@@ -2,8 +2,15 @@
 # Brewfile hash: {{ include "Brewfile" | sha256sum }}
 set -euo pipefail
 
+STATUS_FILE="${TMPDIR:-/tmp}/chezmoi-status-10-brew.log"
+: > "$STATUS_FILE"
+log_status() { printf '%s\t%s\t%s\n' "$1" "$2" "${3:-}" >> "$STATUS_FILE"; }
+
 if ! command -v brew >/dev/null; then
   echo "[brew] Homebrew가 설치되지 않아 건너뜀" >&2
+  log_status SKIP "brew bundle" "Homebrew 미설치"
+  log_status SKIP "mas: KakaoTalk" "Homebrew 미설치"
+  log_status SKIP "mas: Amphetamine" "Homebrew 미설치"
   exit 0
 fi
 
@@ -17,15 +24,34 @@ else
 fi
 
 # ── Homebrew bundle (formulae + casks) ──
-brew bundle --file="{{ .chezmoi.sourceDir }}/Brewfile"
+BREWFILE="{{ .chezmoi.sourceDir }}/Brewfile"
+if brew bundle --file="$BREWFILE"; then
+  SUMMARY=$(awk 'BEGIN{f=0; c=0} /^brew /{f++} /^cask /{c++} END{printf "%d formulae + %d casks", f, c}' "$BREWFILE")
+  log_status OK "brew bundle" "$SUMMARY"
+else
+  RC=$?
+  log_status FAIL "brew bundle" "exit $RC"
+  [ -n "$SUDO_PID" ] && kill "$SUDO_PID" 2>/dev/null || true
+  exit $RC
+fi
 
 # ── Mac App Store apps (실패해도 계속 진행) ──
 echo "[mas] Mac App Store 앱 설치 시작..."
 if command -v mas >/dev/null; then
-  mas install 869223134 || echo "[mas] KakaoTalk 설치 실패 — App Store에서 직접 설치하세요" >&2
-  mas install 937984704 || echo "[mas] Amphetamine 설치 실패 — App Store에서 직접 설치하세요" >&2
+  for entry in "869223134:KakaoTalk" "937984704:Amphetamine"; do
+    id="${entry%%:*}"
+    name="${entry##*:}"
+    if mas install "$id"; then
+      log_status OK "mas: $name"
+    else
+      echo "[mas] $name 설치 실패 — App Store에서 직접 설치하세요" >&2
+      log_status FAIL "mas: $name" "App Store에서 직접 설치 필요"
+    fi
+  done
 else
   echo "[mas] mas CLI를 찾을 수 없어 건너뜀" >&2
+  log_status SKIP "mas: KakaoTalk" "mas CLI 미설치"
+  log_status SKIP "mas: Amphetamine" "mas CLI 미설치"
 fi
 
 # ── 정리 ──

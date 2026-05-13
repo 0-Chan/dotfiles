@@ -1,6 +1,15 @@
 #!/bin/bash
 # defaults hash: KeyRepeat=2
-set -euo pipefail
+set -uo pipefail
 
-defaults write -g KeyRepeat -int 2
-echo "[defaults] KeyRepeat=2 적용 (재로그인 후 반영)"
+STATUS_FILE="${TMPDIR:-/tmp}/chezmoi-status-60-defaults.log"
+: > "$STATUS_FILE"
+log_status() { printf '%s\t%s\t%s\n' "$1" "$2" "${3:-}" >> "$STATUS_FILE"; }
+
+if defaults write -g KeyRepeat -int 2 2>/dev/null; then
+  log_status OK "defaults: KeyRepeat" "2"
+  echo "[defaults] KeyRepeat=2 적용 (재로그인 후 반영)"
+else
+  log_status FAIL "defaults: KeyRepeat" "defaults write 실패"
+  echo "[defaults] KeyRepeat write 실패" >&2
+fi

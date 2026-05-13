@@ -1,20 +1,32 @@
 #!/bin/bash
-set -euo pipefail
+set -uo pipefail
+
+STATUS_FILE="${TMPDIR:-/tmp}/chezmoi-status-15-omz.log"
+: > "$STATUS_FILE"
+log_status() { printf '%s\t%s\t%s\n' "$1" "$2" "${3:-}" >> "$STATUS_FILE"; }
 
 ZSH_DIR="${ZSH:-$HOME/.oh-my-zsh}"
 ZSH_CUSTOM_DIR="${ZSH_CUSTOM:-$ZSH_DIR/custom}"
 
 if ! command -v git >/dev/null; then
   echo "[omz] git이 설치되지 않아 건너뜀" >&2
+  log_status SKIP "oh-my-zsh" "git 미설치"
+  log_status SKIP "omz plugin: zsh-autosuggestions" "git 미설치"
+  log_status SKIP "omz plugin: zsh-syntax-highlighting" "git 미설치"
   exit 0
 fi
 
 # ── oh-my-zsh 본체 ──
 if [ ! -d "$ZSH_DIR" ]; then
   echo "[omz] oh-my-zsh 클론..."
-  git clone --depth=1 https://github.com/ohmyzsh/ohmyzsh.git "$ZSH_DIR"
+  if git clone --depth=1 https://github.com/ohmyzsh/ohmyzsh.git "$ZSH_DIR"; then
+    log_status OK "oh-my-zsh" "신규 클론"
+  else
+    log_status FAIL "oh-my-zsh" "git clone 실패"
+  fi
 else
   echo "[omz] oh-my-zsh 이미 설치됨 — skip"
+  log_status SKIP "oh-my-zsh" "이미 설치됨"
 fi
 
 # ── custom 외부 플러그인 (zsh-users 공식 소스) ──
@@ -29,8 +41,13 @@ for entry in "${CUSTOM_PLUGINS[@]}"; do
   target="$ZSH_CUSTOM_DIR/plugins/$name"
   if [ ! -d "$target" ]; then
     echo "[omz] custom plugin $name 클론..."
-    git clone --depth=1 "$url" "$target"
+    if git clone --depth=1 "$url" "$target"; then
+      log_status OK "omz plugin: $name" "신규 클론"
+    else
+      log_status FAIL "omz plugin: $name" "git clone 실패"
+    fi
   else
     echo "[omz] custom plugin $name 이미 존재 — skip"
+    log_status SKIP "omz plugin: $name" "이미 존재"
   fi
 done

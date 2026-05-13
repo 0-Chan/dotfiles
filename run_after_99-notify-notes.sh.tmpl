@@ -1,0 +1,54 @@
+#!/bin/bash
+# chezmoi apply 결과(이번 세션에서 실제 실행된 단위 작업)를 Notes.app 노트로 띄움
+set -uo pipefail
+
+LOGDIR="${TMPDIR:-/tmp}"
+TS=$(date '+%Y-%m-%d %H:%M:%S')
+
+shopt -s nullglob
+FILES=("$LOGDIR"/chezmoi-status-*.log)
+shopt -u nullglob
+
+if [ ${#FILES[@]} -eq 0 ]; then
+  echo "[notes] 이번 apply에서 실행된 단위 작업 없음 — 알림 생략"
+  exit 0
+fi
+
+OK_HTML=$(cat "${FILES[@]}" 2>/dev/null | awk -F'\t' '$1=="OK"{printf "<li>%s%s</li>\n", $2, ($3?" — "$3:"")}')
+FAIL_HTML=$(cat "${FILES[@]}" 2>/dev/null | awk -F'\t' '$1=="FAIL"{printf "<li>%s%s</li>\n", $2, ($3?" — "$3:"")}')
+SKIP_HTML=$(cat "${FILES[@]}" 2>/dev/null | awk -F'\t' '$1=="SKIP"{printf "<li>%s%s</li>\n", $2, ($3?" — "$3:"")}')
+
+if [ -z "$OK_HTML$FAIL_HTML$SKIP_HTML" ]; then
+  echo "[notes] 상태 파일이 비어 있음 — 알림 생략"
+  rm -f "${FILES[@]}"
+  exit 0
+fi
+
+TITLE="chezmoi apply 결과 ($TS)"
+BODY="<h2>chezmoi apply ($TS)</h2>
+<h3>✓ 성공</h3><ul>${OK_HTML:-<li>(없음)</li>}</ul>
+<h3>✗ 실패</h3><ul>${FAIL_HTML:-<li>(없음)</li>}</ul>
+<h3>– 건너뜀</h3><ul>${SKIP_HTML:-<li>(없음)</li>}</ul>"
+
+# AppleScript 문자열 이스케이프 (백슬래시 먼저, 다음 따옴표)
+escape_as() { printf '%s' "$1" | sed -e 's/\\/\\\\/g' -e 's/"/\\"/g'; }
+T_ESC=$(escape_as "$TITLE")
+B_ESC=$(escape_as "$BODY")
+
+if osascript >/dev/null 2>&1 <<APPLESCRIPT
+tell application "Notes"
+  make new note with properties {name:"$T_ESC", body:"$B_ESC"}
+end tell
+APPLESCRIPT
+then
+  echo "[notes] Notes.app에 결과 노트 생성: $TITLE"
+else
+  FALLBACK="$HOME/Documents/chezmoi-last-apply.txt"
+  echo "[notes] Notes.app 호출 실패 — '$FALLBACK'에 평문 저장" >&2
+  {
+    printf '%s\n\n' "$TITLE"
+    printf '%s\n' "$BODY" | sed 's/<[^>]*>//g'
+  } > "$FALLBACK"
+fi
+
+rm -f "${FILES[@]}"
