@@ -59,7 +59,7 @@
 
 ## 🚀 빠른 시작 (Getting Started)
 
-새 머신 기준 약 10분이면 끝납니다. 위에서 아래로 순서대로 복사·붙여넣기 하세요.
+새 머신 기준 약 10분이면 끝납니다. 위에서 아래로 순서대로 복사·붙여넣기 하세요 (단, 3단계의 자격증명은 A·B 중 **하나만** 선택).
 
 ### 1) Xcode Command Line Tools
 
@@ -113,6 +113,13 @@ aws sso login          # 브라우저 사인-인 → ~/.aws/sso/cache 에 단기
 - 평문 key 저장 없음. IdP에서 사용자 비활성화 시 모든 세션 즉시 무효화 (보안성↑)
 - 회사 AWS 계정이 IAM Identity Center를 쓴다면 보통 이쪽이 강제 또는 권장
 
+자격증명이 정상으로 잡혔는지 확인 (30번 스크립트가 같은 명령으로 검증):
+
+```bash
+aws sts get-caller-identity --profile default
+# Account / Arn / UserId 가 출력되면 OK
+```
+
 > **사전 준비물**: AWS Secrets Manager에 시크릿이 등록돼 있어야 합니다.
 > - `github/personal/token` (개인 GitHub PAT)
 > - `github/company/token` (회사 GitHub PAT)
@@ -137,7 +144,7 @@ chezmoi apply
 
 1. `~/.config/chezmoi/chezmoi.toml` 생성 (`git_mode` 포함)
 2. dotfile 배포 (gitconfig, zshrc, ghostty, vscode, karabiner 등)
-3. **Brewfile 전체 설치** — 시작 직후 sudo 비밀번호 1회 + cask 단계 첫머리에서 `adguard`·`docker-desktop`·`karabiner-elements`·`logi-options+` 4개가 helper tool 설치용 macOS 비밀번호 다이얼로그를 차례로 띄움 (Brewfile 앞쪽에 모아둠). 이 5번의 입력만 끝내면 나머지는 unattended로 진행돼 자리 비워도 됨. 3단계에서 깐 chezmoi/awscli는 그대로 통과
+3. **Brewfile 전체 설치** — 시작 직후 sudo 비밀번호 1회 + cask 단계 첫머리에서 `adguard`·`docker-desktop`·`karabiner-elements`·`logi-options+` 4개가 helper tool 설치용 macOS 비밀번호 다이얼로그를 차례로 띄움 (Brewfile 앞쪽에 모아둠). 이 **5번(sudo 1회 + cask 4회)**의 입력만 끝내면 나머지는 unattended로 진행돼 자리 비워도 됨. 3단계에서 깐 chezmoi/awscli는 그대로 통과
 4. KakaoTalk · Amphetamine `mas install` — App Store 로그인 필요. 실패해도 진행
 5. oh-my-zsh 본체 + zsh 플러그인 2종 자동 클론
 6. VS Code 확장 일괄 설치 — `code` CLI가 PATH에 있을 때만 (없으면 건너뜀)
@@ -217,6 +224,7 @@ GitLens, Biome, Tailwind CSS IntelliSense, Vitest Explorer, Material Icon Theme,
 - 테마: `af-magic` ([`dot_zshrc`](./dot_zshrc))
 - 활성 플러그인: `git`, `zsh-syntax-highlighting`, `zsh-autosuggestions`, `fzf`, `tldr`
 - 커스텀 플러그인 2종(`zsh-autosuggestions`, `zsh-syntax-highlighting`)은 15번 스크립트가 `$ZSH_CUSTOM/plugins/`로 자동 클론
+- `$HOME/.local/bin`이 `PATH` 앞에 추가됨 ([`dot_zshrc`](./dot_zshrc) 마지막 줄)
 
 ### Karabiner 룰
 [`dot_config/private_karabiner/private_assets/private_complex_modifications/`](./dot_config/private_karabiner)
@@ -260,7 +268,7 @@ GitLens, Biome, Tailwind CSS IntelliSense, Vitest Explorer, Material Icon Theme,
 10–60번 스크립트는 자신의 단위 작업(예: `mas: KakaoTalk`, `omz plugin: zsh-syntax-highlighting`)을 `${TMPDIR}/chezmoi-status-NN-name.log`에 `OK / FAIL / SKIP` 형식으로 기록합니다.
 99번 스크립트가 이를 집계하고, 현재 머신의 brew/cask/MAS 전체 목록을 덧붙여 Notes.app 노트를 만든 뒤 상태 파일을 정리합니다.
 
-Notes.app 호출이 실패하면 같은 내용이 `~/Documents/chezmoi-last-apply.txt`에 평문 fallback으로 저장됩니다. 이번 apply에서 어떤 `run_onchange_*`도 트리거되지 않았다면 99번은 알림을 생략합니다.
+Notes.app 호출이 실패하면 같은 내용이 `~/Documents/chezmoi-last-apply.txt`에 평문 fallback으로 저장됩니다. 99번은 매 apply 마지막에 인벤토리까지 묶어 노트를 만들기 때문에, apply가 정상 종료한 경우 노트(또는 fallback)는 **항상** 생성됩니다.
 
 ---
 
@@ -332,7 +340,7 @@ git config --list --show-origin
   → 순서대로 확인:
     1. Notes.app 직접 열어 가장 위 노트가 `chezmoi apply 결과 (...)`인지 — 백그라운드로 추가만 되고 포커스가 안 갔을 수 있음
     2. 없으면 `open ~/Documents/chezmoi-last-apply.txt` (osascript 실패 시 같은 내용이 평문 fallback으로 떨어짐)
-    3. fallback 파일도 없으면 이번 apply에서 어떤 `run_onchange_*`도 트리거 안 돼 99번이 알림을 생략한 것 — 강제 재생성: `chezmoi state delete-bucket --bucket=scriptState && chezmoi apply`
+    3. fallback 파일도 없으면 99번 스크립트까지 도달 못한 것 — `chezmoi apply` 출력 마지막에서 어느 단계에서 멈췄는지 확인하고 그 에러부터 해결
 
     매번 실패한다면 다음 중 하나가 원인:
     - 시스템 설정 → 개인정보 보호 및 보안 → 자동화 → 사용 중인 터미널 → **메모** 권한 ON
