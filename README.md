@@ -6,6 +6,21 @@
 
 ---
 
+## 📑 목차
+
+- [무엇을 자동화하나](#-무엇을-자동화하나)
+- [한눈에 보는 흐름](#-한눈에-보는-흐름)
+- [빠른 시작 (Getting Started)](#-빠른-시작-getting-started)
+- [무엇이 깔리나](#-무엇이-깔리나)
+- [관리되는 dotfile](#-관리되는-dotfile)
+- [자동화 스크립트](#-자동화-스크립트)
+- [git_mode 분기](#-git_mode-분기)
+- [AWS Secrets Manager 컨벤션](#-aws-secrets-manager-컨벤션)
+- [일상 운영](#-일상-운영)
+- [트러블슈팅](#-트러블슈팅)
+
+---
+
 ## ✨ 무엇을 자동화하나
 
 - 📦 **Homebrew 패키지 일괄 설치** — Brewfile 기반의 formula·cask + Mac App Store 앱(`mas`)
@@ -16,6 +31,29 @@
 - 🔐 **GitHub 인증** — AWS Secrets Manager에서 PAT를 가져와 `gh auth login` (personal/company/both)
 - 🖥 **macOS defaults** — `KeyRepeat` 등 시스템 키 설정
 - 📝 **결과 보고** — 매 apply의 성공 / 실패 / 건너뜀 항목을 Notes.app 노트로 자동 작성
+
+---
+
+## 🧭 한눈에 보는 흐름
+
+```
+사용자                          chezmoi apply                Notes.app
+  │                                 │                          │
+  │  xcode-select / brew install    │                          │
+  ├────────────────────────────────▶│                          │
+  │                                 │  10  brew bundle + mas   │
+  │                                 │  15  oh-my-zsh + plugin  │
+  │  (Brewfile/스크립트 해시 변경)  │  20  vscode extensions   │
+  │                                 │  25  chrome 정책 프로파일│
+  │                                 │  30  gh auth (AWS PAT)   │
+  │                                 │  60  macOS defaults      │
+  │                                 │                          │
+  │                                 │  99  결과 집계 ─────────▶│  📝 노트 작성
+  │                                 │                          │     (또는 평문 fallback)
+  ◀─ 다음 단계 안내 (재apply / 수동 작업)
+```
+
+`run_onchange_*`는 트리거된 단계만, `run_after_99-*`는 매 apply 마지막에 실행되어 위 단계들의 OK / FAIL / SKIP을 모아 Notes.app 노트로 띄웁니다.
 
 ---
 
@@ -96,9 +134,9 @@ Notes.app을 열면 가장 위에 다음과 같은 노트가 자동 생성되어
 chezmoi apply 결과 (YYYY-MM-DD HH:MM:SS)
 
 ✓ 성공
-  · brew bundle — 25 formulae + 32 casks
+  · brew bundle — 24 formulae + 32 casks
   · oh-my-zsh — 신규 클론
-  · vscode extensions — 10개 설치 완료
+  · vscode extensions — 11개 설치 완료
   · defaults: KeyRepeat — 2
   ...
 
@@ -118,21 +156,45 @@ chezmoi apply 결과 (YYYY-MM-DD HH:MM:SS)
 
 ## 📦 무엇이 깔리나
 
-### Homebrew formula (CLI)
-`awscli`, `chezmoi`, `git`, `gh`, `node`, `pnpm`, `python`, `uv`, `terraform`, `eza`, `fzf`, `jq`, `mas`, `ffmpeg`, `webp`, `mysql`, `sqlite`, `tldr` 등 — 전체 목록은 [`Brewfile`](./Brewfile)
+### Homebrew formula (CLI, ~24개)
+`awscli`, `chezmoi`, `curl`, `docker`, `docker-compose`, `eza`, `ffmpeg`, `fzf`, `gh`, `git`, `jq`, `mas`, `mysql`, `node`, `pnpm`, `python`, `sqlite`, `terraform`(hashicorp/tap), `tlrc`, `tree`, `uv`, `vim`, `webp`, `wget` — 전체 목록은 [`Brewfile`](./Brewfile)
 
-### Homebrew cask (GUI 앱)
-`ghostty`, `visual-studio-code`, `raycast`, `rectangle`, `karabiner-elements`, `slack`, `obsidian`, `google-chrome`, `claude`, `chatgpt`, `codex`, `dbeaver-community`, `docker-desktop`, `eul` 등 — 전체 목록은 [`Brewfile`](./Brewfile)
+### Homebrew cask (GUI 앱, ~32개)
+터미널·에디터: `ghostty`, `visual-studio-code`, `cmux`, `openinterminal-lite`
+런처·창 관리: `raycast`, `rectangle`, `alt-tab`, `itsycal`
+키보드·입력: `karabiner-elements`, `keyboardcleantool`, `logi-options+`
+브라우저·차단: `google-chrome`, `adguard`
+AI 도구: `claude`, `claude-code`, `chatgpt`, `codex`, `codex-app`
+협업·메모: `slack`, `discord`, `obsidian`, `heynote`
+개발·DB·인프라: `dbeaver-community`, `docker-desktop`, `gcloud-cli`
+미디어·캡처·유틸: `darktable`, `shottr`, `keka`, `monitorcontrol`, `eul`, `hidock`, `rustdesk`
+
+전체 목록은 [`Brewfile`](./Brewfile)을 참고하세요.
 
 ### Mac App Store (`mas`)
 - `869223134` — KakaoTalk
 - `937984704` — Amphetamine
 
-### VS Code 확장
-약 10개 — 전체 목록은 [`dot_config/vscode/extensions.txt`](./dot_config/vscode/extensions.txt)
+> App Store 로그인이 안 돼 있으면 자동 설치가 실패하니, 결과 노트의 ✗ 실패 항목을 보고 직접 설치하세요.
+
+### VS Code 확장 (11개)
+GitLens, Biome, Tailwind CSS IntelliSense, Vitest Explorer, Material Icon Theme, GitHub VS Code Theme, Turbo Console Log 등 — 전체 목록은 [`dot_config/vscode/extensions.txt`](./dot_config/vscode/extensions.txt)
+
+### VS Code 키바인딩
+`private_Library/.../keybindings.json`로 배포 — VS Code가 설치된 뒤 자동 반영.
 
 ### Chrome 확장
 [`chrome-policies.mobileconfig`](./chrome-policies.mobileconfig)의 `ExtensionSettings` 항목으로 강제 설치 — 프로파일 승인 후 Chrome 재시작 시 자동 적용.
+
+### Zsh / oh-my-zsh
+- 테마: `af-magic` ([`dot_zshrc`](./dot_zshrc))
+- 활성 플러그인: `git`, `zsh-syntax-highlighting`, `zsh-autosuggestions`, `fzf`, `tldr`
+- 커스텀 플러그인 2종(`zsh-autosuggestions`, `zsh-syntax-highlighting`)은 15번 스크립트가 `$ZSH_CUSTOM/plugins/`로 자동 클론
+
+### Karabiner 룰
+[`dot_config/private_karabiner/private_assets/private_complex_modifications/`](./dot_config/private_karabiner)
+- `capslock-grave-button1.json`
+- `shift-o-korean.json`
 
 ---
 
