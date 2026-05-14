@@ -60,6 +60,7 @@ chezmoi init --apply https://github.com/0-Chan/dotfiles.git
 4. KakaoTalk · Amphetamine `mas install` — App Store 로그인 필요. 실패해도 진행
 5. oh-my-zsh 본체 + zsh 플러그인 2종 자동 클론
 6. VS Code 확장 일괄 설치 — `code` CLI가 PATH에 있을 때만 (없으면 건너뜀)
+   > ⚠️ 새 머신에서는 6번이 quarantine 다이얼로그로 막힐 수 있습니다. **Visual Studio Code를 GUI에서 한 번 열어 "열기"를 눌러 승인한 뒤 `chezmoi apply`를 한 번 더** 실행하세요. (자세한 내용은 아래 트러블슈팅 참고.)
 7. Chrome 정책 mobileconfig 열림 → **System Settings에서 직접 '설치' 클릭 필요**
 8. Karabiner 룰 배치
 9. KeyRepeat defaults 적용
@@ -133,6 +134,8 @@ chezmoi apply 결과 (YYYY-MM-DD HH:MM:SS)
 
 ### Chrome 확장
 [`chrome-policies.mobileconfig`](./chrome-policies.mobileconfig)의 `ExtensionSettings` 항목으로 강제 설치 — 프로파일 승인 후 Chrome 재시작 시 자동 적용.
+
+> 매 `chezmoi apply` 시 생성되는 Notes.app 노트에 현재 머신에 설치된 Homebrew formulae · casks · MAS 앱 **전체 목록(버전 포함)** 이 자동으로 포함됩니다.
 
 ---
 
@@ -249,3 +252,9 @@ git config --list --show-origin
   → System Settings → General → VPN & Device Management 에서 `com.imjongmin.chrome-policies` 프로파일을 직접 승인. 이후 Chrome 재시작.
 - **Karabiner 룰이 안 잡힌다**
   → Karabiner-Elements를 한 번 실행해 `~/.config/karabiner/` 디렉터리를 만든 뒤 `chezmoi apply` 재실행. 룰은 `~/.config/karabiner/assets/complex_modifications/`에 배치됩니다.
+- **brew로 깐 앱이 처음 실행될 때 "인터넷에서 다운로드한 프로그램" 경고가 떠 `chezmoi apply`가 중간에 막힌다**
+  → macOS Gatekeeper의 quarantine 동작입니다. Homebrew의 `--no-quarantine` 플래그는 [곧 제거될 예정](https://github.com/Homebrew/brew/issues/20755)이라 자동 우회는 사용하지 않습니다. 새 머신 셋업 절차:
+  1. `chezmoi apply` 1차 실행 → `brew bundle`까지는 완료되지만 슬롯 20(VS Code 확장)에서 멈출 수 있음
+  2. Finder/Launchpad에서 **Visual Studio Code**를 한 번 열어 경고 다이얼로그의 "열기"를 클릭해 dismiss
+  3. `chezmoi apply`를 다시 실행 → 슬롯 20부터 이어서 통과
+  4. Chrome, Slack 등 나머지 cask 앱은 본인이 처음 사용할 때 한 번씩 직접 승인하면 됩니다.
