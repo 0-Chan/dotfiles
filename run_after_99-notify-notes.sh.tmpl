@@ -1,5 +1,5 @@
 #!/bin/bash
-# chezmoi apply 결과(이번 세션에서 실제 실행된 단위 작업)를 Notes.app 노트로 띄움
+# chezmoi apply 결과(이번 세션에서 실행된 단위 작업 + 현재 패키지 인벤토리)를 Notes.app 노트로 띄움
 set -uo pipefail
 
 LOGDIR="${TMPDIR:-/tmp}"
@@ -9,18 +9,41 @@ shopt -s nullglob
 FILES=("$LOGDIR"/chezmoi-status-*.log)
 shopt -u nullglob
 
-if [ ${#FILES[@]} -eq 0 ]; then
-  echo "[notes] 이번 apply에서 실행된 단위 작업 없음 — 알림 생략"
-  exit 0
+# ── OK/FAIL/SKIP HTML 빌드 ──
+OK_HTML=""; FAIL_HTML=""; SKIP_HTML=""
+if [ ${#FILES[@]} -gt 0 ]; then
+  OK_HTML=$(cat "${FILES[@]}" 2>/dev/null | awk -F'\t' '$1=="OK"{printf "<li>%s%s</li>\n", $2, ($3?" — "$3:"")}')
+  FAIL_HTML=$(cat "${FILES[@]}" 2>/dev/null | awk -F'\t' '$1=="FAIL"{printf "<li>%s%s</li>\n", $2, ($3?" — "$3:"")}')
+  SKIP_HTML=$(cat "${FILES[@]}" 2>/dev/null | awk -F'\t' '$1=="SKIP"{printf "<li>%s%s</li>\n", $2, ($3?" — "$3:"")}')
 fi
 
-OK_HTML=$(cat "${FILES[@]}" 2>/dev/null | awk -F'\t' '$1=="OK"{printf "<li>%s%s</li>\n", $2, ($3?" — "$3:"")}')
-FAIL_HTML=$(cat "${FILES[@]}" 2>/dev/null | awk -F'\t' '$1=="FAIL"{printf "<li>%s%s</li>\n", $2, ($3?" — "$3:"")}')
-SKIP_HTML=$(cat "${FILES[@]}" 2>/dev/null | awk -F'\t' '$1=="SKIP"{printf "<li>%s%s</li>\n", $2, ($3?" — "$3:"")}')
+# ── 현재 패키지 인벤토리 캡처 ──
+if command -v brew >/dev/null; then
+  FORMULA_LIST=$(brew list --formula --versions 2>/dev/null | awk '{printf "<li>%s</li>\n", $0}')
+  CASK_LIST=$(brew list --cask --versions 2>/dev/null    | awk '{printf "<li>%s</li>\n", $0}')
+  FORMULA_CNT=$(brew list --formula 2>/dev/null | wc -l | tr -d ' ')
+  CASK_CNT=$(brew list --cask 2>/dev/null    | wc -l | tr -d ' ')
+else
+  FORMULA_LIST="<li>(brew 미설치)</li>"; CASK_LIST="<li>(brew 미설치)</li>"
+  FORMULA_CNT=0; CASK_CNT=0
+fi
 
-if [ -z "$OK_HTML$FAIL_HTML$SKIP_HTML" ]; then
-  echo "[notes] 상태 파일이 비어 있음 — 알림 생략"
-  rm -f "${FILES[@]}"
+if command -v mas >/dev/null; then
+  MAS_LIST=$(mas list 2>/dev/null | awk '{id=$1; $1=""; sub(/^ /,""); printf "<li>%s — %s</li>\n", id, $0}')
+  MAS_CNT=$(mas list 2>/dev/null | wc -l | tr -d ' ')
+else
+  MAS_LIST="<li>(mas 미설치)</li>"; MAS_CNT=0
+fi
+
+INVENTORY_HTML="<h3>📦 현재 설치된 패키지</h3>
+<h4>Homebrew Formulae (${FORMULA_CNT})</h4><ul>${FORMULA_LIST:-<li>(없음)</li>}</ul>
+<h4>Homebrew Casks (${CASK_CNT})</h4><ul>${CASK_LIST:-<li>(없음)</li>}</ul>
+<h4>Mac App Store (${MAS_CNT})</h4><ul>${MAS_LIST:-<li>(없음)</li>}</ul>"
+
+# ── 상태 로그도 비고 인벤토리도 못 모았으면 정말 생략 ──
+if [ -z "$OK_HTML$FAIL_HTML$SKIP_HTML" ] && [ -z "$INVENTORY_HTML" ]; then
+  echo "[notes] 보고할 내용 없음 — 알림 생략"
+  [ ${#FILES[@]} -gt 0 ] && rm -f "${FILES[@]}"
   exit 0
 fi
 
@@ -28,7 +51,8 @@ TITLE="chezmoi apply 결과 ($TS)"
 BODY="<h2>chezmoi apply ($TS)</h2>
 <h3>✓ 성공</h3><ul>${OK_HTML:-<li>(없음)</li>}</ul>
 <h3>✗ 실패</h3><ul>${FAIL_HTML:-<li>(없음)</li>}</ul>
-<h3>– 건너뜀</h3><ul>${SKIP_HTML:-<li>(없음)</li>}</ul>"
+<h3>– 건너뜀</h3><ul>${SKIP_HTML:-<li>(없음)</li>}</ul>
+${INVENTORY_HTML}"
 
 # AppleScript 문자열 이스케이프 (백슬래시 먼저, 다음 따옴표)
 escape_as() { printf '%s' "$1" | sed -e 's/\\/\\\\/g' -e 's/"/\\"/g'; }
@@ -51,4 +75,4 @@ else
   } > "$FALLBACK"
 fi
 
-rm -f "${FILES[@]}"
+[ ${#FILES[@]} -gt 0 ] && rm -f "${FILES[@]}"
