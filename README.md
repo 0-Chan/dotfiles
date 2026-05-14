@@ -81,11 +81,27 @@ Apple Silicon은 PATH 주입이 필요합니다 (Intel은 자동).
 eval "$(/opt/homebrew/bin/brew shellenv)"
 ```
 
-### 3) chezmoi 설치 + 이 저장소로 초기화
+### 3) chezmoi · awscli 설치 + AWS 자격증명 구성
+
+gh 인증이 다음 단계의 `chezmoi init --apply`에서 한 번에 통과하도록, AWS 자격증명을 먼저 준비합니다.
 
 ```bash
-brew install chezmoi
+brew install chezmoi awscli
+aws configure
+# Access Key, Secret Key, Region=ap-northeast-2, Output format=json
+```
 
+> **사전 준비물**: AWS Secrets Manager에 시크릿이 등록돼 있어야 합니다.
+> - `github/personal/token` (개인 GitHub PAT)
+> - `github/company/token` (회사 GitHub PAT)
+>
+> IAM 권한: `secretsmanager:GetSecretValue`, Region: `ap-northeast-2`
+
+> AWS Secrets Manager를 안 쓴다면 이 단계를 건너뛰고 `brew install chezmoi`만 실행하세요. 결과 노트에서 gh auth만 SKIP으로 표시되고 나머지는 정상 적용됩니다.
+
+### 4) 이 저장소로 초기화 + 전체 적용
+
+```bash
 # 아래 명령은 git_mode를 묻는 프롬프트를 띄움 (personal / company / both)
 chezmoi init --apply https://github.com/0-Chan/dotfiles.git
 ```
@@ -94,38 +110,15 @@ chezmoi init --apply https://github.com/0-Chan/dotfiles.git
 
 1. `~/.config/chezmoi/chezmoi.toml` 생성 (`git_mode` 포함)
 2. dotfile 배포 (gitconfig, zshrc, ghostty, vscode, karabiner 등)
-3. **Brewfile 전체 설치** — sudo 비밀번호 1회 입력 필요 (cask 때문)
+3. **Brewfile 전체 설치** — sudo 비밀번호 1회 입력 (cask 때문). 3단계에서 깐 chezmoi/awscli는 그대로 통과
 4. KakaoTalk · Amphetamine `mas install` — App Store 로그인 필요. 실패해도 진행
 5. oh-my-zsh 본체 + zsh 플러그인 2종 자동 클론
 6. VS Code 확장 일괄 설치 — `code` CLI가 PATH에 있을 때만 (없으면 건너뜀)
-   > ⚠️ 새 머신에서는 6번이 quarantine 다이얼로그로 막힐 수 있습니다. **Visual Studio Code를 GUI에서 한 번 열어 "열기"를 눌러 승인한 뒤 `chezmoi apply`를 한 번 더** 실행하세요. (자세한 내용은 아래 트러블슈팅 참고.)
+   > ⚠️ 새 머신에서는 macOS Gatekeeper 격리로 6번이 막힐 수 있습니다. Finder에서 VS Code를 한 번 열어 "열기" 클릭 → `chezmoi apply` 재실행.
 7. Chrome 정책 mobileconfig 열림 → **System Settings에서 직접 '설치' 클릭 필요**
-8. Karabiner 룰 배치
+8. **gh 인증** — 3단계에서 설정한 AWS 자격증명으로 `github/personal/token` 등을 받아 `gh auth login` (`git_mode`에 따라 personal · company · both)
 9. KeyRepeat defaults 적용
 10. 📝 **결과 요약 노트가 Notes.app에 생성됨** — 모든 단계의 OK/FAIL/SKIP이 한눈에 보임
-
-### 4) AWS 설정 → gh 인증 활성화
-
-3단계 직후에는 AWS 자격증명이 없어 gh 인증이 자동으로 건너뛰어집니다.
-
-```bash
-aws configure
-# Access Key, Secret Key, Region=ap-northeast-2, Output format 입력
-```
-
-그리고 한 번 더:
-
-```bash
-chezmoi apply
-```
-
-이때 `git_mode`에 따라 personal · company · both 계정이 자동 인증됩니다.
-
-> **사전 준비물**: AWS Secrets Manager에 시크릿이 미리 등록되어 있어야 합니다.
-> - `github/personal/token` (개인 GitHub PAT)
-> - `github/company/token` (회사 GitHub PAT)
->
-> IAM 권한: `secretsmanager:GetSecretValue`, Region: `ap-northeast-2`
 
 ### 5) 결과 확인
 
@@ -147,10 +140,16 @@ chezmoi apply 결과 (YYYY-MM-DD HH:MM:SS)
 – 건너뜀
   · gh auth — AWS 자격증명 미구성
   · chrome 확장 정책 — 프로파일 이미 설치됨
+
+📦 현재 설치된 패키지
+  · Homebrew formulae (24)
+  · Homebrew casks (32)
+  · Mac App Store (2)
 ```
 
-여기서 (a) 추가 수동 작업이 필요한 항목을 처리하고, (b) 위 4단계처럼 `chezmoi apply`를 한 번 더 돌립니다.
+여기서 ✗ 실패 / – 건너뜀 항목을 수동 처리합니다 (App Store 로그인 후 mas 재설치, Chrome 프로파일 승인 등).
 
+> 📋 실제 노트에는 위 인벤토리가 **버전 포함 전체 목록**으로 들어갑니다.
 > Notes.app 호출이 실패하면 같은 내용이 `~/Documents/chezmoi-last-apply.txt`에 평문으로 저장됩니다.
 
 ---
@@ -197,8 +196,6 @@ GitLens, Biome, Tailwind CSS IntelliSense, Vitest Explorer, Material Icon Theme,
 - `capslock-grave-button1.json`
 - `shift-o-korean.json`
 
-> 📋 매 `chezmoi apply` 시 생성되는 Notes.app 노트에 현재 머신에 설치된 Homebrew formulae · casks · MAS 앱 **전체 목록(버전 포함)** 이 자동으로 포함됩니다.
-
 ---
 
 ## 🗂 관리되는 dotfile
@@ -234,7 +231,7 @@ GitLens, Biome, Tailwind CSS IntelliSense, Vitest Explorer, Material Icon Theme,
 ### 결과 보고 메커니즘
 
 10–60번 스크립트는 자신의 단위 작업(예: `mas: KakaoTalk`, `omz plugin: zsh-syntax-highlighting`)을 `${TMPDIR}/chezmoi-status-NN-name.log`에 `OK / FAIL / SKIP` 형식으로 기록합니다.
-99번 스크립트가 이를 집계해 HTML로 카테고리화한 노트를 Notes.app에 만들고, 상태 파일을 정리합니다.
+99번 스크립트가 이를 집계하고, 현재 머신의 brew/cask/MAS 전체 목록을 덧붙여 Notes.app 노트를 만든 뒤 상태 파일을 정리합니다.
 
 Notes.app 호출이 실패하면 같은 내용이 `~/Documents/chezmoi-last-apply.txt`에 평문 fallback으로 저장됩니다. 이번 apply에서 어떤 `run_onchange_*`도 트리거되지 않았다면 99번은 알림을 생략합니다.
 
@@ -310,13 +307,11 @@ git config --list --show-origin
   → `code` CLI가 PATH에 없을 가능성. VS Code Command Palette에서 `Shell Command: Install 'code' command in PATH` 실행 후 `chezmoi apply` 재실행.
 - **gh 인증이 계속 건너뛰어진다**
   → `aws sts get-caller-identity --profile default` 로 AWS 자격증명이 살아있는지 확인. Secrets Manager에 `github/personal/token` 또는 `github/company/token`이 정확한 이름으로 존재하는지도 확인.
+- **gh auth가 한 번 SKIP된 뒤 자격증명을 나중에 설정했더니 `chezmoi apply`를 돌려도 다시 시도하지 않는다**
+  → `chezmoi state delete-bucket --bucket=scriptState && chezmoi apply` 로 30번 스크립트를 강제 재트리거.
 - **Chrome 확장이 안 보인다**
   → System Settings → General → VPN & Device Management 에서 `com.imjongmin.chrome-policies` 프로파일을 직접 승인. 이후 Chrome 재시작.
 - **Karabiner 룰이 안 잡힌다**
   → Karabiner-Elements를 한 번 실행해 `~/.config/karabiner/` 디렉터리를 만든 뒤 `chezmoi apply` 재실행. 룰은 `~/.config/karabiner/assets/complex_modifications/`에 배치됩니다.
-- **brew로 깐 앱이 처음 실행될 때 "인터넷에서 다운로드한 프로그램" 경고가 떠 `chezmoi apply`가 중간에 막힌다**
-  → macOS Gatekeeper의 quarantine 동작입니다. Homebrew의 `--no-quarantine` 플래그는 [곧 제거될 예정](https://github.com/Homebrew/brew/issues/20755)이라 자동 우회는 사용하지 않습니다. 새 머신 셋업 절차:
-  1. `chezmoi apply` 1차 실행 → `brew bundle`까지는 완료되지만 슬롯 20(VS Code 확장)에서 멈출 수 있음
-  2. Finder/Launchpad에서 **Visual Studio Code**를 한 번 열어 경고 다이얼로그의 "열기"를 클릭해 dismiss
-  3. `chezmoi apply`를 다시 실행 → 슬롯 20부터 이어서 통과
-  4. Chrome, Slack 등 나머지 cask 앱은 본인이 처음 사용할 때 한 번씩 직접 승인하면 됩니다.
+- **`chezmoi apply`가 VS Code 확장 단계에서 멈춘다 / cask 앱 첫 실행 시 macOS 보안 경고가 뜬다**
+  → Gatekeeper 격리입니다. Finder에서 **VS Code**를 한 번 열어 "열기"를 누른 뒤 `chezmoi apply`를 재실행하면 통과합니다. Chrome·Slack 등 다른 cask는 본인이 처음 사용할 때 한 번씩 승인하면 됩니다.
