@@ -124,15 +124,20 @@ aws sso login          # 브라우저 사인-인 → ~/.aws/sso/cache 에 단기
 ### 4) 이 저장소로 초기화 + 전체 적용
 
 ```bash
-# 아래 명령은 git_mode를 묻는 프롬프트를 띄움 (personal / company / both)
-chezmoi init --apply https://github.com/0-Chan/dotfiles.git
+# 1) 저장소 클론 + chezmoi.toml 생성. git_mode 프롬프트(personal/company/both)가 떠 답을 기다림
+chezmoi init https://github.com/0-Chan/dotfiles.git
+
+# 2) 답이 끝나면 전체 적용
+chezmoi apply
 ```
 
-이 한 번으로 다음이 순서대로 일어납니다.
+> 한 줄로 묶고 싶으면 `chezmoi init --apply --promptChoice git_mode=<value> https://...` 형태로 값을 직접 박아 넘기세요. `--apply` 단독은 프롬프트와 brew bundle 출력이 뒤섞여 입력 시점을 놓치기 쉬워 권장 안 함.
+
+이 두 명령으로 다음이 순서대로 일어납니다 (1번은 `chezmoi init`, 2번부터는 `chezmoi apply`).
 
 1. `~/.config/chezmoi/chezmoi.toml` 생성 (`git_mode` 포함)
 2. dotfile 배포 (gitconfig, zshrc, ghostty, vscode, karabiner 등)
-3. **Brewfile 전체 설치** — sudo 비밀번호 1회 입력 (cask 때문). 3단계에서 깐 chezmoi/awscli는 그대로 통과
+3. **Brewfile 전체 설치** — 시작 직후 sudo 비밀번호 1회 + cask 단계 첫머리에서 `adguard`·`docker-desktop`·`karabiner-elements`·`logi-options+` 4개가 helper tool 설치용 macOS 비밀번호 다이얼로그를 차례로 띄움 (Brewfile 앞쪽에 모아둠). 이 5번의 입력만 끝내면 나머지는 unattended로 진행돼 자리 비워도 됨. 3단계에서 깐 chezmoi/awscli는 그대로 통과
 4. KakaoTalk · Amphetamine `mas install` — App Store 로그인 필요. 실패해도 진행
 5. oh-my-zsh 본체 + zsh 플러그인 2종 자동 클론
 6. VS Code 확장 일괄 설치 — `code` CLI가 PATH에 있을 때만 (없으면 건너뜀)
@@ -323,8 +328,16 @@ git config --list --show-origin
 
 ## ❓ 트러블슈팅
 
-- **Notes.app에 노트가 안 생긴다**
-  → iCloud Notes 계정이 없거나 osascript가 차단됐을 가능성. 같은 내용이 `~/Documents/chezmoi-last-apply.txt`에 평문으로 떨어져 있는지 확인.
+- **`chezmoi apply` 끝났는데 Notes.app에 결과 노트가 안 보인다**
+  → 순서대로 확인:
+    1. Notes.app 직접 열어 가장 위 노트가 `chezmoi apply 결과 (...)`인지 — 백그라운드로 추가만 되고 포커스가 안 갔을 수 있음
+    2. 없으면 `open ~/Documents/chezmoi-last-apply.txt` (osascript 실패 시 같은 내용이 평문 fallback으로 떨어짐)
+    3. fallback 파일도 없으면 이번 apply에서 어떤 `run_onchange_*`도 트리거 안 돼 99번이 알림을 생략한 것 — 강제 재생성: `chezmoi state delete-bucket --bucket=scriptState && chezmoi apply`
+
+    매번 실패한다면 다음 중 하나가 원인:
+    - 시스템 설정 → 개인정보 보호 및 보안 → 자동화 → 사용 중인 터미널 → **메모** 권한 ON
+    - iCloud에서 메모 동기화 켜기 또는 Notes.app에 "On My Mac" 계정 하나라도 있도록
+    - Notes.app을 한 번도 띄운 적 없으면 직접 한 번 실행
 - **VS Code 확장이 안 깔린다**
   → `code` CLI가 PATH에 없을 가능성. VS Code Command Palette에서 `Shell Command: Install 'code' command in PATH` 실행 후 `chezmoi apply` 재실행.
 - **gh 인증이 계속 건너뛰어진다**
@@ -337,3 +350,7 @@ git config --list --show-origin
   → Karabiner-Elements를 한 번 실행해 `~/.config/karabiner/` 디렉터리를 만든 뒤 `chezmoi apply` 재실행. 룰은 `~/.config/karabiner/assets/complex_modifications/`에 배치됩니다.
 - **`chezmoi apply`가 VS Code 확장 단계에서 멈춘다 / cask 앱 첫 실행 시 macOS 보안 경고가 뜬다**
   → Gatekeeper 격리입니다. Finder에서 **VS Code**를 한 번 열어 "열기"를 누른 뒤 `chezmoi apply`를 재실행하면 통과합니다. Chrome·Slack 등 다른 cask는 본인이 처음 사용할 때 한 번씩 승인하면 됩니다.
+- **`chezmoi init --apply`를 다시 돌렸는데 git_mode 프롬프트가 안 뜬다**
+  → `~/.config/chezmoi/chezmoi.toml`이 이미 있어서 `promptChoiceOnce`가 기존 값을 재사용함. 모드를 바꾸려면 `chezmoi edit-config` 후 `chezmoi apply`, 처음부터 다시 하려면 `rm ~/.config/chezmoi/chezmoi.toml`.
+- **cask 설치 도중 비밀번호 다이얼로그가 뜬다**
+  → `adguard`·`docker-desktop`·`karabiner-elements`·`logi-options+` 4개는 macOS SMJobBless로 자체 helper tool을 설치할 때 sudo와 별개의 비밀번호를 요구함. Brewfile에서 cask 섹션 맨 위에 몰아 두었으니 셋업 초반 4번만 입력해주면 됨.

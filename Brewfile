@@ -42,7 +42,14 @@ brew "webp"
 brew "wget"
 
 # Casks
+# ── 비밀번호 다이얼로그가 뜨는 cask (helper tool / system extension 설치) ──
+# 셋업 초반에 몰아 처리해서 그 뒤로는 unattended 진행되도록 맨 위 배치
 cask "adguard"
+cask "docker-desktop"
+cask "karabiner-elements"
+cask "logi-options+"
+
+# ── 그 외 cask (대부분 unattended) ──
 cask "alt-tab"
 cask "chatgpt"
 cask "claude"
@@ -53,7 +60,6 @@ cask "codex-app"
 cask "darktable"
 cask "dbeaver-community"
 cask "discord"
-cask "docker-desktop"
 cask "eul"
 cask "gcloud-cli"
 cask "ghostty"
@@ -61,10 +67,8 @@ cask "google-chrome"
 cask "heynote"
 cask "hidock"
 cask "itsycal"
-cask "karabiner-elements"
 cask "keka"
 cask "keyboardcleantool"
-cask "logi-options+"
 cask "monitorcontrol"
 cask "obsidian"
 cask "openinterminal-lite"
