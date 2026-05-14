@@ -1,0 +1,4 @@
+# Claude Code local working files — 머신별 컨텍스트는 추적하지 않음
+.claude/agent-memory/
+.claude/settings.local.json
+.claude/worktrees/
