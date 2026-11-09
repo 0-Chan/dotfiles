@@ -2,3 +2,7 @@
 # run_onchange_after_10-brew.sh.tmpl이 sourceDir에서 직접 읽기 때문에 Brewfile은 배포 X.
 Brewfile
 README.md
+
+# 문서는 저장소에서만 관리하고 홈 디렉터리에는 배포하지 않음.
+docs/
+docs/**
